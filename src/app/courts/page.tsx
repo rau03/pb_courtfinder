@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import CourtCard from "@/components/courts/CourtCard";
-import { mockCourts } from "@/lib/mockData";
+import { getCourts, type Court } from "@/lib/pocketbase";
 
 export default function CourtsPage() {
+  const [courts, setCourts] = useState<Court[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     indoor: false,
     outdoor: false,
@@ -13,7 +15,17 @@ export default function CourtsPage() {
     free: false,
   });
 
-  const filteredCourts = mockCourts.filter((court) => {
+  useEffect(() => {
+    const fetchCourts = async () => {
+      const data = await getCourts();
+      setCourts(data);
+      setLoading(false);
+    };
+
+    fetchCourts();
+  }, []);
+
+  const filteredCourts = courts.filter((court) => {
     if (filters.indoor && filters.outdoor) {
       // If both are selected, show all
     } else if (filters.indoor && !court.isIndoor) {
@@ -130,23 +142,40 @@ export default function CourtsPage() {
         </h2>
       </div>
 
-      {/* Court grid */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {filteredCourts.map((court) => (
-          <CourtCard key={court.id} {...court} />
-        ))}
-      </div>
-
-      {/* No results message */}
-      {filteredCourts.length === 0 && (
-        <div className="text-center py-12">
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            No courts found
-          </h3>
-          <p className="text-gray-600">
-            Try adjusting your filters to see more results.
-          </p>
+      {/* Loading state */}
+      {loading ? (
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((n) => (
+            <div key={n} className="animate-pulse">
+              <div className="bg-gray-200 h-48 rounded-t-lg"></div>
+              <div className="bg-white p-4 rounded-b-lg">
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+              </div>
+            </div>
+          ))}
         </div>
+      ) : (
+        <>
+          {/* Court grid */}
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredCourts.map((court) => (
+              <CourtCard key={court.id} {...court} />
+            ))}
+          </div>
+
+          {/* No results message */}
+          {filteredCourts.length === 0 && (
+            <div className="text-center py-12">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No courts found
+              </h3>
+              <p className="text-gray-600">
+                Try adjusting your filters to see more results.
+              </p>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
